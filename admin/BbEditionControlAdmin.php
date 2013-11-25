@@ -5,7 +5,7 @@
  * @package   BbEditionControlAdmin
  * @author    Bruno Barros <bruno@brunobarros.com>
  * @license   GPL-2.0+
- * @link      http://brunobarros.com
+ * @link      https://github.com/bruno-barros/BB-Edition-Control-for-Wordpress
  * @copyright 2013 Bruno Barros
  */
 
@@ -38,6 +38,12 @@ class BbEditionControlAdmin {
 	protected $plugin_screen_hook_suffix = null;
 
 	/**
+	 * Instance os BbEditionControlDb
+	 * @var object
+	 */
+	public $DB;
+
+	/**
 	 * Initialize the plugin by loading admin scripts & styles and adding a
 	 * settings page and menu.
 	 *
@@ -54,6 +60,9 @@ class BbEditionControlAdmin {
 			return;
 		} */
 
+		// Db object
+		$this->DB = new BbEditionControlDb();
+
 		/*
 		 * Call $plugin_slug from public plugin class.
 		 */
@@ -67,6 +76,9 @@ class BbEditionControlAdmin {
 		// Add the options page and menu item.
 		add_action( 'admin_menu', array( $this, 'add_plugin_admin_menu' ) );
 
+		// create metabox on posts
+		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
+
 		// Add an action link pointing to the options page.
 		$plugin_basename = plugin_basename( plugin_dir_path( __DIR__ ) . $plugin->get_class_name() . '.php' );
 		add_filter( 'plugin_action_links_' . $plugin_basename, array( $this, 'add_action_links' ) );
@@ -77,8 +89,16 @@ class BbEditionControlAdmin {
 		 * Read more about actions and filters:
 		 * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		// add_action( '@TODO', array( $this, 'action_method_name' ) );
+		add_action( 'admin_init', array( $this, 'action_form_add_new' ) );
+
+		// ao submeter form para adicionar nova edição
+		add_action( 'admin_init', array( $this, 'action_form_submited' ), 10 );
+
+		// ao salvar um post verifica a edição para salvar
+		add_action('save_post', array( $this, 'action_save_post' ), 10, 2);
+
 		// add_filter( '@TODO', array( $this, 'filter_method_name' ) );
+
 
 	}
 
@@ -111,10 +131,6 @@ class BbEditionControlAdmin {
 	/**
 	 * Register and enqueue admin-specific style sheet.
 	 *
-	 * @TODO:
-	 *
-	 * - Rename "Plugin_Name" to the name your plugin
-	 *
 	 * @since     1.0.0
 	 *
 	 * @return    null    Return early if no settings page is registered.
@@ -127,17 +143,14 @@ class BbEditionControlAdmin {
 
 		$screen = get_current_screen();
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
-			wp_enqueue_style( $this->plugin_slug .'-admin-styles', plugins_url( 'assets/css/admin.css', __FILE__ ), array(), Plugin_Name::VERSION );
+			wp_enqueue_style( 'jquery-theme', plugins_url( 'assets/css/smoothness/jquery-ui-1.10.3.custom.min.css', __FILE__ ) );
+			wp_enqueue_style( $this->plugin_slug .'-admin-styles', plugins_url( 'assets/css/admin.css', __FILE__ ), array(), BbEditionControl::VERSION );
 		}
 
 	}
 
 	/**
 	 * Register and enqueue admin-specific JavaScript.
-	 *
-	 * @TODO:
-	 *
-	 * - Rename "Plugin_Name" to the name your plugin
 	 *
 	 * @since     1.0.0
 	 *
@@ -151,8 +164,38 @@ class BbEditionControlAdmin {
 
 		$screen = get_current_screen();
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
-			wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'assets/js/admin.js', __FILE__ ), array( 'jquery' ), Plugin_Name::VERSION );
+			wp_enqueue_script('jquery-ui-datepicker');
+			wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'assets/js/admin.js', __FILE__ ), array( 'jquery' ), BbEditionControl::VERSION );
 		}
+
+	}
+
+	/**
+	 * Cria metabox
+	 * @param string $postType
+	 */
+	public function add_meta_box($postType)
+	{
+		if ( current_user_can('manage_options') && $postType !== 'page' )
+		{
+			//add_meta_box( $id, $title, $callback, $post_type, $context, $priority, $callback_args );			
+			add_meta_box($this->plugin_slug, __('Edition', $this->plugin_slug), array($this, "render_meta_box"), $postType, 'side', 'high');
+		}
+	}
+
+	/**
+	 * Monta view do metabox
+	 * 
+	 */
+	public function render_meta_box()
+	{
+		global $wpdb, $post;
+
+		$e = $this->DB->getActive();
+		$pe = $this->DB->getPostEdition($post);
+		// $this->dd($pe);
+
+		require_once('views/metabox.php');
 
 	}
 
@@ -171,19 +214,17 @@ class BbEditionControlAdmin {
 		 *        Administration Menus: http://codex.wordpress.org/Administration_Menus
 		 *
 		 * @TODO:
-		 *
-		 * - Change 'Page Title' to the title of your plugin admin page
-		 * - Change 'Menu Text' to the text for menu item for the plugin settings page
+		 * - Translation on 'languages/'
 		 * - Change 'manage_options' to the capability you see fit
 		 *   For reference: http://codex.wordpress.org/Roles_and_Capabilities
 		 */
 		$this->plugin_screen_hook_suffix = add_options_page(
-			__( 'Controle de Edições', $this->plugin_slug ),
-			__( 'Edições', $this->plugin_slug ),
+			__( 'Page Title', $this->plugin_slug ),
+			__( 'Menu Text', $this->plugin_slug ),
 			'manage_options',
 			$this->plugin_slug,
 			array( $this, 'display_plugin_admin_page' )
-		);
+			);
 
 	}
 
@@ -193,7 +234,19 @@ class BbEditionControlAdmin {
 	 * @since    1.0.0
 	 */
 	public function display_plugin_admin_page() {
-		include_once( 'views/admin.php' );
+
+		if( isset($_GET['edit']) )
+		{
+			$item = $this->DB->get($_GET['edit']);
+			include_once( 'views/edit.php' );
+		}
+		else
+		{
+			include_once( 'views/new.php' );
+			$list = $this->DB->getAll();
+			include_once( 'views/list.php' );
+		}
+
 	}
 
 	/**
@@ -206,9 +259,9 @@ class BbEditionControlAdmin {
 		return array_merge(
 			array(
 				'settings' => '<a href="' . admin_url( 'options-general.php?page=' . $this->plugin_slug ) . '">' . __( 'Opções', $this->plugin_slug ) . '</a>'
-			),
+				),
 			$links
-		);
+			);
 
 	}
 
@@ -221,9 +274,85 @@ class BbEditionControlAdmin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function action_method_name() {
-		// @TODO: Define your action hook callback here
+	public function action_form_add_new() {
+
+		register_setting('bb_settings', 'bb_settings', array(&$this, 'validate'));
+
+		// General Settings
+		add_settings_section('general_section', __('Add New Edition', $this->plugin_slug), 'bbform::section_description', 'bb_generate_add_new');
+
+		add_settings_field('date', 'Date', 'bbform::textbox', 'bb_generate_add_new', 'general_section', 
+			array('id' => 'field_date', 'text' => 'Date of publication', 'settings' => 'bb_settings'));
+
+		add_settings_field('checkbox_field', 'Checkbox Field', 'bbform::checkbox', 'bb_generate_add_new', 'general_section', 
+			array('id' => 'checkbox_field', 'text' => '', 'settings' => 'bb_settings'));
+
+		add_settings_field('textarea_field', 'Textbox Field', 'bbform::textarea', 'bb_generate_add_new', 'general_section', 
+			array('id' => 'textarea_field', 'settings' => 'bb_settings'));
 	}
+
+	/**
+	 * Verifica requisições dos formulários e executa métodos correspondentes
+	 * @return void
+	 */
+	public function action_form_submited()
+	{
+		// insere nova edição
+		if(isset($_POST['bb_add_new_hidden']) && $_POST['bb_add_new_hidden'] === 'Y')
+		{
+			try{
+				$save = $this->DB->saveNewEdition($_POST);
+				if( $save )
+				{
+					echo $this->message('Edition saved', 'updated');
+				}
+			} 
+			catch (Exception $e)
+			{
+				echo $this->message($e->getMessage(), 'error');
+			}
+		}
+		// editando uma edição
+		else if(isset($_POST['bb_update_hidden']) && $_POST['bb_update_hidden'] === 'Y')
+		{
+			try{
+				$save = $this->DB->updateEdition($_POST['bb_update_id'], $_POST);
+				if( $save )
+				{
+					echo $this->message('Edition saved', 'updated');
+				}
+			} 
+			catch (Exception $e)
+			{
+				echo $this->message($e->getMessage(), 'error');
+			}			
+		}
+	}
+
+
+	/**
+	 * Callback para savlar edição ao salvar um post
+	 * @param  int $postId
+	 * @param  object $post
+	 * @return void
+	 */
+	public function action_save_post($postId, $post)
+	{
+		if( isset($_POST['bb_edition_control_selected']) )
+		{
+			try{
+				$save = $this->DB->savePostEdition($postId, $_POST['bb_edition_control_selected']);
+			}
+			catch(Exception $e)
+			{
+				$this->dd($e->getMessage());
+			}
+		}
+		// $this->dd('Salvou um post', false);
+		// $this->dd( func_get_args());
+		// $this->dd($post);
+	}
+
 
 	/**
 	 * NOTE:     Filters are points of execution in which WordPress modifies data
@@ -236,6 +365,47 @@ class BbEditionControlAdmin {
 	 */
 	public function filter_method_name() {
 		// @TODO: Define your filter hook callback here
+	}
+
+	public function url($value='')
+	{
+		return $_SERVER['PHP_SELF'] . "?page=" . $this->plugin_slug . $value;
+	}
+
+
+	/**
+	 * Retorna o endereço atual para preencher formulário
+	 * @return string
+	 */
+	public function form_action_url()
+	{
+		unset($_GET['edit']); // delete edit parameter;
+		$qs = http_build_query($_GET);
+
+		return str_replace( '%7E', '~', $_SERVER['PHP_SELF']) . "?{$qs}";
+	}
+
+	/**
+	 * Monta html da mensagem
+	 * @param  string $msg  [description]
+	 * @param  string $type updated|error
+	 * @return string
+	 */
+	public function message($msg = 'Edition saved', $type = 'updated')
+	{
+		return "<div id=\"message\" class=\"{$type}\"><p><strong>".__($msg, $this->plugin_slug )."</strong></p></div>  ";
+	}
+
+	/**
+	 * Helper para debugar app
+	 * @param  string  $value 
+	 * @param  boolean $die   
+	 */
+	public function dd($value='', $die = true)
+	{
+		echo '<pre>';
+		var_dump($value);
+		if($die) exit;
 	}
 
 }

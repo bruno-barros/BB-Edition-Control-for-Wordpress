@@ -10,7 +10,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       BB Edition Control
- * Plugin URI:        http://www.brunobarros.com
+ * Plugin URI:        https://github.com/bruno-barros/BB-Edition-Control-for-Wordpress
  * Description:       Plugin para categorizar todo conteúdo em edições, como em um jornal.
  * Version:           1.0.0
  * Author:            Bruno Barros
@@ -19,7 +19,7 @@
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Domain Path:       /languages
- * GitHub Plugin URI: https://github.com/<owner>/<repo>
+ * GitHub Plugin URI: https://github.com/bruno-barros/BB-Edition-Control-for-Wordpress
  */
 
 // If this file is called directly, abort.
@@ -35,6 +35,9 @@ if ( ! defined( 'WPINC' ) ) {
  * lê plugin
  */
 require_once( plugin_dir_path( __FILE__ ) . 'public/BbEditionControl.php' );
+require_once( plugin_dir_path( __FILE__ ) . 'public/BbEditionControlDb.php' );
+
+
 
 /*
  * Register hooks that are fired when the plugin is activated or deactivated.
@@ -61,6 +64,9 @@ add_action( 'plugins_loaded', array( 'BbEditionControl', 'get_instance' ) );
  * The code below is intended to to give the lightest footprint possible.
  */
 if ( is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) ) {
+
+    require_once( plugin_dir_path( __FILE__ ) . 'includes/DateHelper.php' );
+    require_once( plugin_dir_path( __FILE__ ) . 'includes/StrHelper.php' );
 
 	require_once( plugin_dir_path( __FILE__ ) . 'admin/BbEditionControlAdmin.php' );
 	add_action( 'plugins_loaded', array( 'BbEditionControlAdmin', 'get_instance' ) );

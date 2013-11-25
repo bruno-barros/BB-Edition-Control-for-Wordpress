@@ -5,7 +5,7 @@
  * @package   BbEditionControl
  * @author    Bruno Barros <bruno@brunobarros.com>
  * @license   GPL-2.0+
- * @link      http://brunobarros.com
+ * @link      https://github.com/bruno-barros/BB-Edition-Control-for-Wordpress
  * @copyright 2013 Bruno Barros
  */
 
@@ -51,12 +51,20 @@ class BbEditionControl {
 	protected static $instance = null;
 
 	/**
+	 * Instance os BbEditionControlDb
+	 * @var object
+	 */
+	public $DB;
+
+	/**
 	 * Initialize the plugin by setting localization and loading public scripts
 	 * and styles.
 	 *
 	 * @since     1.0.0
 	 */
 	private function __construct() {
+
+		$this->DB = new BbEditionControlDb();
 
 		// Load plugin text domain
 		add_action( 'init', array( $this, 'load_plugin_textdomain' ) );
@@ -234,10 +242,13 @@ class BbEditionControl {
 	/**
 	 * Fired for each blog when the plugin is activated.
 	 *
+	 * Create database
+	 *
 	 * @since    1.0.0
 	 */
 	private static function single_activate() {
-		// @TODO: Define activation functionality here
+		$db = new BbEditionControlDb();
+		$db->createTable();
 	}
 
 	/**
@@ -246,7 +257,8 @@ class BbEditionControl {
 	 * @since    1.0.0
 	 */
 	private static function single_deactivate() {
-		// @TODO: Define deactivation functionality here
+		$db = new BbEditionControlDb();
+		// $db->dropTable();
 	}
 
 	/**
@@ -259,7 +271,7 @@ class BbEditionControl {
 		$domain = $this->plugin_slug;
 		$locale = apply_filters( 'plugin_locale', get_locale(), $domain );
 
-		load_textdomain( $domain, trailingslashit( WP_LANG_DIR ) . $domain . '/' . $domain . '-' . $locale . '.mo' );
+		load_textdomain( $domain, trailingslashit( plugin_dir_path( __DIR__ ) ) .'languages/' . $domain . '-' . $locale . '.mo' );
 
 	}
 

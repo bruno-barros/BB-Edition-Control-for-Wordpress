@@ -3,8 +3,11 @@
 
 	$(function () {
 
-		// Place your administration-specific JavaScript here
+		$('.date-pick').datepicker({
+            dateFormat : 'dd/mm/yy'
+         });
 
 	});
 
 }(jQuery));
+
