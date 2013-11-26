@@ -89,13 +89,18 @@ class BbEditionControlAdmin {
 		 * Read more about actions and filters:
 		 * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		add_action( 'admin_init', array( $this, 'action_form_add_new' ) );
 
 		// ao submeter form para adicionar nova edição
 		add_action( 'admin_init', array( $this, 'action_form_submited' ), 10 );
 
 		// ao salvar um post verifica a edição para salvar
 		add_action('save_post', array( $this, 'action_save_post' ), 10, 2);
+		
+		// Add action to the manage post column to display the data
+		//add_action( 'manage_posts_custom_column' , array( $this, 'action_custom_columns' ) );
+
+		// Add a column to the edit post list
+		//add_filter( 'manage_posts_columns', array( $this, 'filter_add_new_columns' ) );
 
 		// add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
@@ -394,6 +399,36 @@ class BbEditionControlAdmin {
 	public function message($msg = 'Edition saved', $type = 'updated')
 	{
 		return "<div id=\"message\" class=\"{$type}\"><p><strong>".__($msg, $this->plugin_slug )."</strong></p></div>  ";
+	}
+	
+	/**
+	 * Add new columns to the post table
+	 *
+	 * @param array $columns Current columns on the list post
+	 */
+	public function filter_add_new_columns( $columns ) {
+		// my custom columns
+		$column_meta = array( 'my-custom-col' => 'My Custom Column' );
+		// position of the colum on the columns array
+		$columns = array_slice( $columns, 0, 2, true ) + $column_meta + array_slice( $columns, 2, NULL, true );
+		return $columns;
+	}
+
+	/**
+	 * Add content to custom columns when listing
+	 * @param  string $column Column index
+	 * @return string
+	 */
+	public function action_custom_columns($column = '')
+	{
+		global $post;
+
+		switch ( $column ) {
+			case 'my-custom-col':
+				$metaData = 'My custom value';
+				echo $metaData;
+			break;
+		}
 	}
 
 	/**
