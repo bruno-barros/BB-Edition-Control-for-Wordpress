@@ -89,7 +89,6 @@ class BbEditionControlAdmin {
 		 * Read more about actions and filters:
 		 * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		// add_action( 'admin_init', array( $this, 'action_form_add_new' ) );
 
 		// ao submeter form para adicionar nova edição
 		add_action( 'admin_init', array( $this, 'action_form_submited' ), 10 );
@@ -438,7 +437,8 @@ class BbEditionControlAdmin {
 	{
 		return "<div id=\"message\" class=\"{$type}\"><p><strong>".__($msg, $this->plugin_slug )."</strong></p></div>  ";
 	}
-
+	
+	
 	/**
 	 * Helper para debugar app
 	 * @param  string  $value 
