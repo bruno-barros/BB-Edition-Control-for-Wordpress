@@ -99,8 +99,14 @@ class BbEditionControlAdmin {
 		// Add action to the manage post column to display the data
 		add_action( 'manage_posts_custom_column' , array( $this, 'action_custom_columns' ) );
 
+		// load custom sortable filter
+		add_action( 'load-edit.php', array( $this, 'action_load_sortable_columns' ) );
+
 		// Add a column to the edit post list
 		add_filter( 'manage_posts_columns', array( $this, 'filter_add_new_columns' ), 10, 2);
+
+		// register column sortable
+		add_filter( 'manage_edit-post_sortable_columns', array( $this, 'filter_register_sortable_columns' ) );
 
 
 		// add_filter( '@TODO', array( $this, 'filter_method_name' ) );
@@ -438,7 +444,7 @@ class BbEditionControlAdmin {
 		return "<div id=\"message\" class=\"{$type}\"><p><strong>".__($msg, $this->plugin_slug )."</strong></p></div>  ";
 	}
 	
-	
+
 	/**
 	 * Helper para debugar app
 	 * @param  string  $value 
@@ -458,7 +464,7 @@ class BbEditionControlAdmin {
 	 */
 	public function filter_add_new_columns( $columns ) {
 		// $this->dd($columns);
-		$column_meta = array( 'edition' => 'Edição' );
+		$column_meta = array( 'edition' => __('Edition', $this->plugin_slug) );
 		// position
 		$columns = array_slice( $columns, 0, 2, true ) + $column_meta + array_slice( $columns, 2, NULL, true );
 		return $columns;
@@ -479,6 +485,54 @@ class BbEditionControlAdmin {
 				echo ($metaData) ? $metaData->name : '-';
 			break;
 		}
+	}
+
+
+	/**
+	 * Register the column as sortable
+	 * @param  array $columns
+	 * @return array
+	 */
+	public function filter_register_sortable_columns( $columns ) {
+	    $columns['edition'] = 'edition';
+	    return $columns;
+	}
+
+	/**
+	 * Adiciona filtro para ordenação pela edição
+	 * @return void
+	 */
+	public function action_load_sortable_columns()
+	{
+		add_filter( 'request', array($this, 'filter_sortable_columns') );
+	}
+
+	/**
+	 * Filtro executado ao ordenar colunas oela edição.
+	 * Posts que não tenham edição não serão exibidos
+	 * @param  array $vars 
+	 * @return array
+	 */
+	public function filter_sortable_columns($vars = '')
+	{
+		// check correct post types
+		if ( isset( $vars['post_type'] ) && 'page' !== $vars['post_type'] ) {
+
+			// check if orderby is set to 'edition'
+			if ( isset( $vars['orderby'] ) && 'edition' == $vars['orderby'] ) {
+
+				// Merge the query vars with our custom variables.
+				$vars = array_merge(
+					$vars,
+					array(
+						'meta_key' => '_bb_edition_control',
+						'orderby' => 'meta_value'
+					)
+				);
+			}
+		}
+
+		return $vars;
 	}
 
 }
