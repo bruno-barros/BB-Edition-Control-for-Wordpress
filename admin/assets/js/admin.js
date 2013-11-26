@@ -7,6 +7,8 @@
             dateFormat : 'dd/mm/yy'
          });
 
+        $('#field_slug').slugify('#field_name');
+
 	});
 
 }(jQuery));

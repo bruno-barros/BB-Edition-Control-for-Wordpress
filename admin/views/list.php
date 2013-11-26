@@ -11,7 +11,6 @@
 ?>
 <div class="wrap">
 
-    <h2>Edições</h2>
  
     <table class="widefat">
     <thead>
@@ -44,7 +43,7 @@
          <td><?php echo $item->number?></td>
          <td><?php echo $item->name?></td>
          <td><?php echo Str::statusLbl($item->status)?></td>
-         <td><a href="<?php echo $this->url()?>&edit=<?php echo $item->id?>">editar</a></td>
+         <td><a href="<?php echo $this->url('edit='.$item->id)?>"><?php _e('edit', $this->plugin_slug)?></a></td>
        </tr>
         
 
@@ -56,7 +55,7 @@
     </tbody>
     </table>
 
-    <div class="tablenav">
+    <!-- <div class="tablenav">
     <div class='tablenav-pages'>
     <div class="pagination-links">
             
@@ -65,7 +64,7 @@
         <a href="#">3</a>
     </div>   
     </div>
-    </div>
+    </div> -->
 
 
 

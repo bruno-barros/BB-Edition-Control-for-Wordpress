@@ -12,14 +12,7 @@
 
 <div class="wrap">
 
-	<?php screen_icon(); ?>
-	<h2><?php echo esc_html( get_admin_page_title() ); ?></h2>
-
-	
-    <div class="tabwrap">
         
-
-    <h3>Editando...</h3>
 
     <form id="add-new-edition" action="<?php echo $this->form_action_url()?>" method="post">
         <input type="hidden" name="bb_update_hidden" value="Y">
@@ -75,8 +68,6 @@
             <a href="<?php echo $this->url()?>" class="button-secondary"><?php _e('Back', $this->plugin_slug ) ?></a>
         </p>
     </form>
-
-    </div>
 
  
 

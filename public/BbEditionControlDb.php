@@ -164,7 +164,7 @@ class BbEditionControlDb {
     /**
      * Retorna a edição pelo ID
      * @param  int $id
-     * @return onject
+     * @return object
      */
     public function get($id = null)
     {
@@ -172,7 +172,7 @@ class BbEditionControlDb {
 
         $l = $wpdb->get_results("SELECT * FROM {$this->getTable()} WHERE id={$id}");
 
-        return $l[0];
+        return ($l) ? $l[0] : null;
     }
 
 
@@ -181,7 +181,7 @@ class BbEditionControlDb {
      * @param  object|int $post Pode ser o objeto ou o ID
      * @return int
      */
-    public function getPostEdition($post)
+    public function getPostEditionId($post)
     {
         if( is_object($post))
         {
@@ -195,6 +195,17 @@ class BbEditionControlDb {
         $metaVal = get_post_meta( $id, '_bb_edition_control', true);
 
         return ( is_numeric($metaVal) ) ? $metaVal : 0;
+    }
+
+    /**
+     * Retorna objeto com dados da edição
+     * @param  object|int $post ID ou objeto
+     * @return object
+     */
+    public function getPostEdition($post)
+    {
+        $id = $this->getPostEditionId($post);
+        return $this->get($id);
     }
 
     /**

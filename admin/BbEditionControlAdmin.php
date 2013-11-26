@@ -89,13 +89,20 @@ class BbEditionControlAdmin {
 		 * Read more about actions and filters:
 		 * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		add_action( 'admin_init', array( $this, 'action_form_add_new' ) );
+		// add_action( 'admin_init', array( $this, 'action_form_add_new' ) );
 
 		// ao submeter form para adicionar nova edição
 		add_action( 'admin_init', array( $this, 'action_form_submited' ), 10 );
 
 		// ao salvar um post verifica a edição para salvar
 		add_action('save_post', array( $this, 'action_save_post' ), 10, 2);
+
+		// Add action to the manage post column to display the data
+		add_action( 'manage_posts_custom_column' , array( $this, 'action_custom_columns' ) );
+
+		// Add a column to the edit post list
+		add_filter( 'manage_posts_columns', array( $this, 'filter_add_new_columns' ), 10, 2);
+
 
 		// add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
@@ -163,8 +170,12 @@ class BbEditionControlAdmin {
 		}
 
 		$screen = get_current_screen();
+
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
 			wp_enqueue_script('jquery-ui-datepicker');
+			// jquery.slugify.js
+			wp_enqueue_script( $this->plugin_slug . '-slugify-script', plugins_url( 'assets/js/jquery.slugify.js', __FILE__ ), array( 'jquery' ), BbEditionControl::VERSION );
+			// admin.js
 			wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'assets/js/admin.js', __FILE__ ), array( 'jquery' ), BbEditionControl::VERSION );
 		}
 
@@ -192,7 +203,7 @@ class BbEditionControlAdmin {
 		global $wpdb, $post;
 
 		$e = $this->DB->getActive();
-		$pe = $this->DB->getPostEdition($post);
+		$pe = $this->DB->getPostEditionId($post);
 		// $this->dd($pe);
 
 		require_once('views/metabox.php');
@@ -219,8 +230,8 @@ class BbEditionControlAdmin {
 		 *   For reference: http://codex.wordpress.org/Roles_and_Capabilities
 		 */
 		$this->plugin_screen_hook_suffix = add_options_page(
-			__( 'Page Title', $this->plugin_slug ),
-			__( 'Menu Text', $this->plugin_slug ),
+			__( 'Edition Control', $this->plugin_slug ),
+			__( 'Edition Control', $this->plugin_slug ),
 			'manage_options',
 			$this->plugin_slug,
 			array( $this, 'display_plugin_admin_page' )
@@ -235,14 +246,19 @@ class BbEditionControlAdmin {
 	 */
 	public function display_plugin_admin_page() {
 
-		if( isset($_GET['edit']) )
+		include_once('views/tabs.php');
+
+		if( $this->getTab() == 'edit' )
 		{
 			$item = $this->DB->get($_GET['edit']);
 			include_once( 'views/edit.php' );
 		}
-		else
+		else if( $this->getTab() == 'new' )
 		{
 			include_once( 'views/new.php' );
+		}
+		else
+		{
 			$list = $this->DB->getAll();
 			include_once( 'views/list.php' );
 		}
@@ -369,7 +385,34 @@ class BbEditionControlAdmin {
 
 	public function url($value='')
 	{
-		return $_SERVER['PHP_SELF'] . "?page=" . $this->plugin_slug . $value;
+		$pieces = (! is_array($value)) ? array($value) : $value;
+		$vals = '&' . implode('&', $pieces);
+		return $_SERVER['PHP_SELF'] . "?page=" . $this->plugin_slug . $vals;
+	}
+
+	/**
+	 * Retorna o valor da tab ativa:
+	 * - list
+	 * - new
+	 * - edit
+	 * @return string
+	 */
+	public function getTab()
+	{
+		if(! isset($_GET['tab']) && ! isset($_GET['edit']) )
+		{
+			$tab = 'list';
+		}
+		else if( isset($_GET['edit']) )
+		{
+			$tab = 'edit';
+		}
+		else
+		{
+			$tab = $_GET['tab'];
+		}
+
+		return $tab;
 	}
 
 
@@ -406,6 +449,36 @@ class BbEditionControlAdmin {
 		echo '<pre>';
 		var_dump($value);
 		if($die) exit;
+	}
+
+	/**
+	 * Add new columns to the post table
+	 *
+	 * @param array $columns Current columns on the list post
+	 */
+	public function filter_add_new_columns( $columns ) {
+		// $this->dd($columns);
+		$column_meta = array( 'edition' => 'Edição' );
+		// position
+		$columns = array_slice( $columns, 0, 2, true ) + $column_meta + array_slice( $columns, 2, NULL, true );
+		return $columns;
+	}
+
+	/**
+	 * Add content to custom columns when listing
+	 * @param  string $column Column index
+	 * @return string
+	 */
+	public function action_custom_columns($column = '')
+	{
+		global $post;
+
+		switch ( $column ) {
+			case 'edition':
+				$metaData = $this->DB->getPostEdition($post);
+				echo ($metaData) ? $metaData->name : '-';
+			break;
+		}
 	}
 
 }
